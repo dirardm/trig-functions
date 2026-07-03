@@ -1,0 +1,46 @@
+<svg xmlns="http://www.w3.org/2000/svg"
+  viewBox="0 0 160 124"
+  width="320" height="248"
+  role="img"
+  aria-label="ObligaI logo vertical dark">
+  <rect width="160" height="124" fill="#0F0F0F"/>
+
+  <!--
+    NODE MARK — reverted to approved size
+    r_center=10, r_sat=6, stroke=3.0, D=28
+    font-weight=500 (Medium) — approved and retained
+  -->
+  <line x1="80" y1="46" x2="80" y2="34"
+    stroke="#B85C3A" stroke-width="3" stroke-linecap="round"/>
+  <line x1="89" y1="61" x2="99" y2="67"
+    stroke="#B85C3A" stroke-width="3" stroke-linecap="round"/>
+  <line x1="71" y1="61" x2="61" y2="67"
+    stroke="#B85C3A" stroke-width="3" stroke-linecap="round"/>
+
+  <circle cx="80" cy="56" r="10" fill="#B85C3A"/>
+
+  <circle cx="80"  cy="28" r="6"
+    fill="none" stroke="#B85C3A" stroke-width="3"/>
+  <circle cx="104" cy="70" r="6"
+    fill="none" stroke="#B85C3A" stroke-width="3"/>
+  <circle cx="56"  cy="70" r="6"
+    fill="none" stroke="#B85C3A" stroke-width="3"/>
+
+  <!--
+    WORDMARK — approved weight retained
+    font-weight=500 (Medium)
+  -->
+  <text
+    x="80" y="108"
+    text-anchor="middle"
+    font-family="Inter, -apple-system, Helvetica Neue, Arial, sans-serif"
+    font-weight="500"
+    font-size="24"
+    fill="#FFFFFF"
+    letter-spacing="-0.3">Obliga<tspan
+      font-family="Georgia, 'Times New Roman', serif"
+      font-style="italic"
+      fill="#B85C3A"
+      dx="-0.04em">I</tspan></text>
+
+</svg>
