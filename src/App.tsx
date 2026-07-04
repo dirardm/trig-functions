@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { AnimatePresence, motion } from 'framer-motion';
+import { AnimatePresence } from 'framer-motion';
 import { useTheme } from './context/ThemeContext';
 import { initWasm, useTrigInfo, type TrigFuncInfo } from './hooks/useTrigWasm';
 import { TRIG_THEMES } from './data/trigTheme';
@@ -61,20 +61,7 @@ export default function App(){
           <button className="btn btn-ghost btn-icon" onClick={() => setHelpOpen(true)} title="Help">
             <span className="icon"><HelpIcon/></span>
           </button>
-          <motion.button className="btn btn-ghost btn-icon" onClick={toggleMode} whileTap={{ scale:0.85 }}>
-            <AnimatePresence mode="wait">
-              <motion.span
-                key={mode}
-                initial={{ opacity:0, rotate:-180, scale:0 }}
-                animate={{ opacity:1, rotate:0, scale:1 }}
-                exit={{ opacity:0, rotate:180, scale:0 }}
-                transition={{ duration:0.3 }}
-                className="icon"
-              >
-                {mode==='dark'?<SunIcon/>:<MoonIcon/>}
-              </motion.span>
-            </AnimatePresence>
-          </motion.button>
+          <button className="btn btn-ghost btn-icon" onClick={toggleMode}><span className="icon">{mode==='dark'?<SunIcon/>:<MoonIcon/>}</span></button>
         </div>
       </header>
 

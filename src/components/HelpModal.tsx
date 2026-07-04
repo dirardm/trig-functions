@@ -51,7 +51,7 @@ export default function HelpModal({ onClose }: Props) {
 
         {TRIG_HELP.map(d => (
           <div key={d.id} className="mb-6">
-            <div className={`regulation-card ${d.regClass} p-6`}>
+            <div className={`regulation-card ${d.regClass}`} style={{ padding: 'var(--space-6)' }}>
               <div className="flex-row gap-3 mb-2">
                 <h3 className="t-h3 m-0" id={`help-${d.id}`}><Formula latex={d.nameLatex} /></h3>
                 <span className="badge badge--regulation">Periodic</span>
