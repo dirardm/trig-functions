@@ -232,11 +232,11 @@ export default function TrigCard({ funcInfo }: Props) {
       <div className="flex-row flex-center gap-3 pt-2">
         <div className="flex-col flex-center">
           <span dangerouslySetInnerHTML={{ __html: katex.renderToString(funcInfo.latex, { throwOnError: false }) }} style={{ color: theme.color }} />
-          <motion.span key={point?.value?.toFixed(4)} initial={{ opacity:0, y:-6 }} animate={{ opacity:1, y:0 }} transition={{ duration:0.25 }} className="t-mono" style={{ color: valueFlash ? theme.color : undefined, transition: 'color 0.3s' }}>{fmt(point?.value)}</motion.span>
+          <span className="t-mono" style={{ color: valueFlash ? theme.color : undefined, transition: 'color 0.3s' }}>{fmt(point?.value)}</span>
         </div>
         <div className="flex-col flex-center">
           <span dangerouslySetInnerHTML={{ __html: derivFormulaHtml }} style={{ color: theme.color }} />
-          <motion.span key={point?.derivative?.toFixed(4)} initial={{ opacity:0, y:-6 }} animate={{ opacity:1, y:0 }} transition={{ duration:0.25 }} className="t-mono">{fmt(point?.derivative)}</motion.span>
+          <span className="t-mono">{fmt(point?.derivative)}</span>
         </div>
       </div>
       </div>
