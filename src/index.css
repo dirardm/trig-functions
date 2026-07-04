@@ -93,7 +93,31 @@ canvas { display:block; width:100%; }
 /* Unit circle + chart side-by-side */
 .trig-layout { display: flex; flex-direction: row; gap: var(--space-4); align-items: center; }
 .trig-layout__circle { flex-shrink: 0; }
+.trig-layout__circle canvas { animation: breathe 3s ease-in-out infinite; }
 .trig-layout__chart { flex: 1 1 0; min-width: 0; }
+
+@keyframes breathe {
+  0%, 100% { filter: drop-shadow(0 0 6px var(--fn-color, var(--accent))); }
+  50% { filter: drop-shadow(0 0 18px var(--fn-color, var(--accent))); }
+}
+
+.card.regulation-card {
+  position: relative;
+  overflow: hidden;
+}
+.card.regulation-card::after {
+  content: '';
+  position: absolute;
+  top: -50%; left: -50%;
+  width: 200%; height: 200%;
+  background: conic-gradient(from 0deg, transparent, var(--fn-color, var(--accent)), transparent, var(--fn-color, var(--accent)), transparent);
+  opacity: 0.07;
+  animation: shimmer 8s linear infinite;
+  pointer-events: none;
+}
+@keyframes shimmer {
+  to { transform: rotate(360deg); }
+}
 
 .content-card-wrap { max-width: 720px; margin: 0 auto; width: 100%; padding: 1rem; }
 
@@ -137,7 +161,7 @@ input[type="range"].param-range {
 input[type="range"].param-range::-webkit-slider-runnable-track {
   height:6px;
   border-radius:3px;
-  background:color-mix(in srgb, var(--fn-color, var(--accent)) 25%, transparent);
+  background:linear-gradient(to right, var(--fn-color, var(--accent)) 0%, var(--fn-color, var(--accent)) var(--pct, 50%), transparent var(--pct, 50%), transparent 100%);
 }
 input[type="range"].param-range::-webkit-slider-thumb {
   -webkit-appearance:none !important;
@@ -172,3 +196,10 @@ input[type="range"].param-range::-moz-range-thumb {
 .spinner--lg { width:48px; height:48px; border-width:4px; }
 .spinner--centered { margin:0 auto; }
 @keyframes spin { to { transform:rotate(360deg); } }
+
+.btn-icon.btn-ghost,
+[data-theme="dark"] .btn-icon.btn-ghost { background:transparent; border-color:transparent; box-shadow:none; backdrop-filter:none; -webkit-backdrop-filter:none; }
+.btn-icon:focus-visible,
+.btn-icon:focus,
+[data-theme="dark"] .btn-icon:focus-visible,
+[data-theme="dark"] .btn-icon:focus { outline:none!important; }

@@ -1,5 +1,7 @@
-import { useRef, useEffect } from 'react';
+import { useRef, useEffect, useCallback } from 'react';
 import type { TrigValues } from '../hooks/useTrigWasm';
+
+function near(a: number, b: number, tol: number): boolean { const d = a - b; return d > -tol && d < tol; }
 
 const TAU = 6.283185307179586;
 
@@ -8,10 +10,40 @@ interface Props {
   values: TrigValues | null;
   color: string;
   size?: number;
+  onAngleChange?: (angle: number) => void;
+  ping?: number;
+  isDragging?: boolean;
 }
 
-export default function UnitCircle({ angle, values, color, size = 240 }: Props) {
+export default function UnitCircle({ angle, values, color, size = 240, onAngleChange, ping, isDragging }: Props) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
+  const draggingRef = useRef(false);
+  const trailRef = useRef<{x:number;y:number;t:number}[]>([]);
+
+  const pointerToAngle = useCallback((clientX: number, clientY: number, el: HTMLElement) => {
+    const rect = el.getBoundingClientRect();
+    const cx = rect.left + rect.width / 2;
+    const cy = rect.top + rect.height / 2;
+    const a = Math.atan2(-(clientY - cy), clientX - cx);
+    const TAU = 6.283185307179586;
+    onAngleChange?.(((a % TAU) + TAU) % TAU > Math.PI ? ((a % TAU) + TAU) % TAU - TAU : ((a % TAU) + TAU) % TAU);
+  }, [onAngleChange]);
+
+  const onPointerDown = useCallback((e: React.PointerEvent) => {
+    draggingRef.current = true;
+    (e.target as HTMLElement).setPointerCapture(e.pointerId);
+    pointerToAngle(e.clientX, e.clientY, e.currentTarget as HTMLElement);
+  }, [pointerToAngle]);
+
+  const onPointerMove = useCallback((e: React.PointerEvent) => {
+    if (!draggingRef.current) return;
+    pointerToAngle(e.clientX, e.clientY, e.currentTarget as HTMLElement);
+  }, [pointerToAngle]);
+
+  const onPointerUp = useCallback((e: React.PointerEvent) => {
+    draggingRef.current = false;
+    (e.target as HTMLElement).releasePointerCapture(e.pointerId);
+  }, []);
 
   useEffect(() => {
     const canvas = canvasRef.current;
@@ -33,8 +65,8 @@ export default function UnitCircle({ angle, values, color, size = 240 }: Props) 
     ctx.clearRect(0, 0, size, size);
 
     // Axes
-    ctx.strokeStyle = color + '55';
-    ctx.lineWidth = 1;
+    ctx.strokeStyle = color + '88';
+    ctx.lineWidth = 1.5;
     ctx.beginPath(); ctx.moveTo(cx - r - 12, cy); ctx.lineTo(cx + r + 12, cy); ctx.stroke();
     ctx.beginPath(); ctx.moveTo(cx, cy - r - 12); ctx.lineTo(cx, cy + r + 12); ctx.stroke();
 
@@ -61,10 +93,28 @@ export default function UnitCircle({ angle, values, color, size = 240 }: Props) 
     const px = cx + cosVal * r;
     const py = cy - sinVal * r;
 
-    // Angle arc from positive x-axis
+    // Trail — store and draw previous positions
+    const now = Date.now();
+    if (!isDragging) {
+      trailRef.current.push({ x:px, y:py, t:now });
+      while (trailRef.current.length > 12) trailRef.current.shift();
+    }
+    for (let i = 0; i < trailRef.current.length; i++) {
+      const tr = trailRef.current[i];
+      const age = (now - tr.t) / 1000;
+      const alpha = Math.max(0, 0.3 - age * 0.6);
+      if (alpha > 0) {
+        ctx.beginPath(); ctx.arc(tr.x, tr.y, 3 + (1-alpha)*3, 0, TAU);
+        ctx.fillStyle = color + Math.round(alpha*255).toString(16).padStart(2,'0');
+        ctx.fill();
+      }
+    }
+
+    // Angle arc with pulsing opacity
+    const arcAlpha = 0.35 + Math.sin(now / 1500) * 0.15;
     ctx.strokeStyle = color;
     ctx.lineWidth = 2;
-    ctx.globalAlpha = 0.5;
+    ctx.globalAlpha = arcAlpha;
     ctx.beginPath();
     if (angle >= 0) {
       ctx.arc(cx, cy, r * 0.25, 0, -angle, true);
@@ -79,20 +129,32 @@ export default function UnitCircle({ angle, values, color, size = 240 }: Props) 
     ctx.lineWidth = 2.5;
     ctx.beginPath(); ctx.moveTo(cx, cy); ctx.lineTo(px, py); ctx.stroke();
 
-    // sin projection — vertical dashed from x-axis to circle point
+    // sin projection — marching dashes
     ctx.strokeStyle = color + '88';
     ctx.lineWidth = 1;
     ctx.setLineDash([4, 3]);
+    ctx.lineDashOffset = -(now / 150);
     ctx.beginPath(); ctx.moveTo(px, cy); ctx.lineTo(px, py); ctx.stroke();
 
-    // cos projection — horizontal dashed from y-axis to circle point
+    // cos projection — marching dashes
     ctx.beginPath(); ctx.moveTo(cx, py); ctx.lineTo(px, py); ctx.stroke();
     ctx.setLineDash([]);
+    ctx.lineDashOffset = 0;
 
-    // Moving dot on the circle
+    // Ping ring when dragging
+    if (isDragging && ping !== undefined) {
+      const pingR = 8 + ping * 30;
+      const pingAlpha = Math.max(0, 1 - ping);
+      ctx.beginPath(); ctx.arc(px, py, pingR, 0, TAU);
+      ctx.strokeStyle = color + Math.round(pingAlpha*255).toString(16).padStart(2,'0');
+      ctx.lineWidth = 2;
+      ctx.stroke();
+    }
+
+    // Moving dot on the circle with glow
     ctx.fillStyle = color;
-    ctx.shadowColor = 'rgba(0,0,0,0.5)';
-    ctx.shadowBlur = 6;
+    ctx.shadowColor = color + '99';
+    ctx.shadowBlur = 14;
     ctx.beginPath(); ctx.arc(px, py, 6, 0, TAU); ctx.fill();
     ctx.shadowBlur = 0;
 
@@ -120,18 +182,21 @@ export default function UnitCircle({ angle, values, color, size = 240 }: Props) 
     // θ label — angle value in radians below the circle
     const p = 3.141592653589793;
     let angleLabel = angle.toFixed(3) + ' rad';
-    if (Math.abs(angle + p*2) < 0.02) angleLabel = '−2π';
-    else if (Math.abs(angle + p) < 0.02) angleLabel = '−π';
-    else if (Math.abs(angle) < 0.02) angleLabel = '0';
-    else if (Math.abs(angle - p/2) < 0.02) angleLabel = 'π/2';
-    else if (Math.abs(angle - p) < 0.02) angleLabel = 'π';
-    else if (Math.abs(angle - 3*p/2) < 0.02) angleLabel = '3π/2';
-    else if (Math.abs(angle - p*2) < 0.02) angleLabel = '2π';
+    if (near(angle, -p*2, 0.02)) angleLabel = '−2π';
+    else if (near(angle, -p, 0.02)) angleLabel = '−π';
+    else if (near(angle, 0, 0.02)) angleLabel = '0';
+    else if (near(angle, p/2, 0.02)) angleLabel = 'π/2';
+    else if (near(angle, p, 0.02)) angleLabel = 'π';
+    else if (near(angle, 3*p/2, 0.02)) angleLabel = '3π/2';
+    else if (near(angle, p*2, 0.02)) angleLabel = '2π';
     ctx.fillStyle = color;
     ctx.font = 'bold 12px "JetBrains Mono", monospace';
     ctx.textAlign = 'center';
     ctx.fillText('θ = ' + angleLabel, cx, cy + r + 28);
   }, [angle, values, color, size]);
 
-  return <canvas ref={canvasRef} style={{ display: 'block', flexShrink: 0 }} />;
+  return <canvas ref={canvasRef} className="unit-circle-canvas"
+    onPointerDown={onPointerDown} onPointerMove={onPointerMove} onPointerUp={onPointerUp}
+    style={{ touchAction: 'none', cursor: onAngleChange ? 'grab' : 'default' }}
+  />;
 }

@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef, useMemo, useCallback } from 'react';
-import { motion } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
 import katex from 'katex';
 import { useTheme } from '../context/ThemeContext';
 import TrigChart from './TrigChart';
@@ -89,6 +89,36 @@ export default function TrigCard({ funcInfo }: Props) {
   }, [isPlaying, animate]);
 
   const togglePlay = useCallback(() => setIsPlaying(p => !p), []);
+  const [tilt, setTilt] = useState({ rx:0, ry:0 });
+  const [glowPos, setGlowPos] = useState({ x:50, y:50 });
+  const [ripple, setRipple] = useState<{x:number;y:number;id:number} | null>(null);
+  const [ping, setPing] = useState(0);
+  const pingRaf = useRef<number>(0);
+  const doPing = useCallback(() => {
+    setPing(0);
+    cancelAnimationFrame(pingRaf.current);
+    let start = 0;
+    const step = (ts: number) => {
+      if (!start) start = ts;
+      const p = (ts - start) / 600;
+      if (p >= 1) { setPing(0); return; }
+      setPing(p);
+      pingRaf.current = requestAnimationFrame(step);
+    };
+    pingRaf.current = requestAnimationFrame(step);
+  }, []);
+  const prevValueRef = useRef(point?.value);
+  const [valueFlash, setValueFlash] = useState(false);
+  useEffect(() => {
+    if (point && prevValueRef.current !== point.value) { setValueFlash(true); const t=setTimeout(()=>setValueFlash(false),300); prevValueRef.current=point.value; return ()=>clearTimeout(t); }
+  }, [point?.value]);
+  const handleCardMove = useCallback((e: React.MouseEvent) => {
+    const r = e.currentTarget.getBoundingClientRect();
+    const x = e.clientX - r.left; const y = e.clientY - r.top;
+    setTilt({ rx:((y-r.height/2)/r.height*2)*-6, ry:((x-r.width/2)/r.width*2)*6 });
+    setGlowPos({ x:(x/r.width)*100, y:(y/r.height)*100 });
+  }, []);
+  const handleCardLeave = useCallback(() => { setTilt({ rx:0, ry:0 }); setGlowPos({ x:50, y:50 }); }, []);
 
   const derivFormulaHtml = useMemo(
     () => katex.renderToString(funcInfo.derivative_latex, { throwOnError: false }),
@@ -98,10 +128,15 @@ export default function TrigCard({ funcInfo }: Props) {
   return (
     <motion.div
       className={`card regulation-card ${theme.regClass}`}
-      initial={{ opacity: 0, y: 30 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.35, ease: [0.25, 0.46, 0.45, 0.94] }}
+      initial={{ opacity: 0, y: 40, scale: 0.97 }}
+      animate={{ opacity: 1, y: 0, scale: 1, rotateX: tilt.rx, rotateY: tilt.ry }}
+      transition={{ duration: 0.5, ease: [0.16, 1, 0.3, 1], rotateX: { type:'spring', stiffness:300, damping:30 }, rotateY: { type:'spring', stiffness:300, damping:30 } }}
+      onMouseMove={handleCardMove}
+      onMouseLeave={handleCardLeave}
+      style={{ perspective:'1000px', transformStyle:'preserve-3d' }}
     >
+      <div style={{ position:'absolute', inset:0, pointerEvents:'none', borderRadius:'inherit', background:`radial-gradient(circle at ${glowPos.x}% ${glowPos.y}%, ${theme.color}18, transparent 55%)`, zIndex:1 }} />
+      <div style={{ position:'relative', zIndex:2 }}>
       <div className="card-header-row">
         <span className="regulation-card__title m-0" dangerouslySetInnerHTML={{ __html: katex.renderToString(funcInfo.latex, { throwOnError: false }) }} style={{ color: theme.color }} />
         <span className={`badge badge--regulation ${theme.badgeClass}`}>Periodic</span>
@@ -119,11 +154,11 @@ export default function TrigCard({ funcInfo }: Props) {
       )}
 
       {curve && !loading && (
-        <div className="trig-layout">
-          <div className="trig-layout__circle">
-            <UnitCircle angle={angle} values={trigValues} color={theme.color} size={220} />
-          </div>
-          <div className="trig-layout__chart">
+        <motion.div className="trig-layout" initial="hidden" animate="visible" variants={{ hidden:{}, visible:{ transition:{ staggerChildren:0.12, delayChildren:0.05 } } }}>
+          <motion.div className="trig-layout__circle" variants={{ hidden:{ opacity:0, scale:0.85, filter:'blur(8px)' }, visible:{ opacity:1, scale:1, filter:'blur(0px)', transition:{ duration:0.55, ease:[0.16,1,0.3,1] } } }}>
+            <UnitCircle angle={angle} values={trigValues} color={theme.color} size={220} onAngleChange={a => { setAngle(a); setIsPlaying(false); doPing(); }} ping={ping} isDragging={false} />
+          </motion.div>
+          <motion.div className="trig-layout__chart" variants={{ hidden:{ opacity:0, x:40, filter:'blur(8px)' }, visible:{ opacity:1, x:0, filter:'blur(0px)', transition:{ duration:0.55, ease:[0.16,1,0.3,1] } } }}>
             <TrigChart
               curve={curve}
               color={theme.color}
@@ -134,24 +169,50 @@ export default function TrigCard({ funcInfo }: Props) {
               markerAngle={angle}
               markerValue={point?.value ?? null}
               markerDerivativeValue={point?.derivative ?? null}
+              onAngleChange={a => { setAngle(a); setIsPlaying(false); doPing(); }}
+              ping={ping}
             />
-          </div>
-        </div>
+          </motion.div>
+        </motion.div>
       )}
 
       <div className="field mt-3">
         <div className="flex-row flex-between mb-1">
           <span className="t-small">Angle <span dangerouslySetInnerHTML={{ __html: katex.renderToString('\\theta', { throwOnError: false }) }} /></span>
           <div className="flex-row flex-center gap-2">
-            <button
+            <motion.button
               className="btn btn-ghost btn-icon"
-              onClick={togglePlay}
+              onClick={(e) => {
+                const r = e.currentTarget.getBoundingClientRect();
+                setRipple({ x: e.clientX - r.left, y: e.clientY - r.top, id: Date.now() });
+                togglePlay();
+              }}
               title={isPlaying ? 'Pause' : 'Play'}
+              whileTap={{ scale: 0.85 }}
+              style={{ position: 'relative', overflow: 'hidden' }}
             >
-              <span className="icon icon--sm">
-                {isPlaying ? <PauseIcon /> : <PlayIcon />}
-              </span>
-            </button>
+              {ripple && (
+                <motion.span
+                  key={ripple.id}
+                  initial={{ width: 0, height: 0, opacity: 0.5, x: ripple.x, y: ripple.y }}
+                  animate={{ width: 80, height: 80, opacity: 0, x: ripple.x - 40, y: ripple.y - 40 }}
+                  transition={{ duration: 0.5 }}
+                  style={{ position: 'absolute', borderRadius: '50%', background: theme.color, pointerEvents: 'none' }}
+                />
+              )}
+              <AnimatePresence mode="wait">
+                <motion.span
+                  key={isPlaying ? 'pause' : 'play'}
+                  initial={{ opacity: 0, rotate: -90, scale: 0 }}
+                  animate={{ opacity: 1, rotate: 0, scale: 1 }}
+                  exit={{ opacity: 0, rotate: 90, scale: 0 }}
+                  transition={{ duration: 0.2 }}
+                  className="icon icon--sm"
+                >
+                  {isPlaying ? <PauseIcon /> : <PlayIcon />}
+                </motion.span>
+              </AnimatePresence>
+            </motion.button>
             <span className="t-mono-small">{fmtRad(angle)}</span>
           </div>
         </div>
@@ -163,6 +224,7 @@ export default function TrigCard({ funcInfo }: Props) {
           value={angle}
           onChange={e => { setAngle(Number(e.target.value)); setIsPlaying(false); }}
           className="param-range"
+          style={{ '--pct': `${((angle + TAU) / (2 * TAU)) * 100}%` } as React.CSSProperties}
         />
         <span className="t-caption">One rad ≈ 57.3° — one radian is the angle where the arc length equals the radius</span>
       </div>
@@ -170,12 +232,13 @@ export default function TrigCard({ funcInfo }: Props) {
       <div className="flex-row flex-center gap-3 pt-2">
         <div className="flex-col flex-center">
           <span dangerouslySetInnerHTML={{ __html: katex.renderToString(funcInfo.latex, { throwOnError: false }) }} style={{ color: theme.color }} />
-          <span className="t-mono">{fmt(point?.value)}</span>
+          <motion.span key={point?.value?.toFixed(4)} initial={{ opacity:0, y:-6 }} animate={{ opacity:1, y:0 }} transition={{ duration:0.25 }} className="t-mono" style={{ color: valueFlash ? theme.color : undefined, transition: 'color 0.3s' }}>{fmt(point?.value)}</motion.span>
         </div>
         <div className="flex-col flex-center">
           <span dangerouslySetInnerHTML={{ __html: derivFormulaHtml }} style={{ color: theme.color }} />
-          <span className="t-mono">{fmt(point?.derivative)}</span>
+          <motion.span key={point?.derivative?.toFixed(4)} initial={{ opacity:0, y:-6 }} animate={{ opacity:1, y:0 }} transition={{ duration:0.25 }} className="t-mono">{fmt(point?.derivative)}</motion.span>
         </div>
+      </div>
       </div>
     </motion.div>
   );
