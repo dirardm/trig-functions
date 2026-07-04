@@ -87,15 +87,10 @@ export function useTrigPoint(funcId: string | null, degrees: number | null) {
 export function useTrigValues(degrees: number | null) {
   const isReady = useWasmReady();
   const [result, setResult] = useState<TrigValues | null>(null);
-  const timer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
 
   useEffect(() => {
     if (degrees === null || !isReady) return;
-    clearTimeout(timer.current);
-    timer.current = setTimeout(() => {
-      setResult(JSON.parse(trig_values(degrees)) as TrigValues);
-    }, 80);
-    return () => clearTimeout(timer.current);
+    setResult(JSON.parse(trig_values(degrees)) as TrigValues);
   }, [degrees, isReady]);
 
   return result;

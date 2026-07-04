@@ -34,6 +34,8 @@
   box-shadow: 0 4px 24px rgba(0,0,0,0.20), inset 0 1px 0 rgba(255,255,255,0.06) !important;
 }
 
+.modal--wide { max-width: 800px; max-height: 85vh; overflow-y: auto; }
+
 /* Glassmorphism on modal */
 .modal {
   background: rgba(255,255,255,0.60) !important;
@@ -46,6 +48,18 @@
   backdrop-filter: blur(28px) saturate(1.2) !important;
   -webkit-backdrop-filter: blur(28px) saturate(1.2) !important;
   border: 1px solid rgba(255,255,255,0.08) !important;
+}
+
+/* Help modal scrim — lighter glass overlay */
+.modal-scrim {
+  background: rgba(255,255,255,0.25) !important;
+  backdrop-filter: blur(6px) !important;
+  -webkit-backdrop-filter: blur(6px) !important;
+}
+[data-theme="dark"] .modal-scrim {
+  background: rgba(0,0,0,0.35) !important;
+  backdrop-filter: blur(8px) !important;
+  -webkit-backdrop-filter: blur(8px) !important;
 }
 
 /* Glassmorphism on sidebar */
@@ -72,6 +86,14 @@
   -webkit-backdrop-filter: blur(14px) !important;
 }
 canvas { display:block; width:100%; }
+
+/* KaTeX formulas — inherit from parent inline style */
+.katex-html { color: inherit; }
+
+/* Unit circle + chart side-by-side */
+.trig-layout { display: flex; flex-direction: row; gap: var(--space-4); align-items: center; }
+.trig-layout__circle { flex-shrink: 0; }
+.trig-layout__chart { flex: 1 1 0; min-width: 0; }
 
 .content-card-wrap { max-width: 720px; margin: 0 auto; width: 100%; padding: 1rem; }
 

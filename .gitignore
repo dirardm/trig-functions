@@ -3,3 +3,4 @@ dist
 wasm/target
 wasm/pkg
 .DS_Store
+.vercel
