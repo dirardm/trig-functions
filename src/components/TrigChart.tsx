@@ -29,7 +29,6 @@ const zeroLinePlugin = {
     ctx.beginPath(); ctx.moveTo(chartArea.left, y0); ctx.lineTo(chartArea.right, y0); ctx.stroke();
     ctx.fillStyle = '#94a3b8';
     ctx.font = '10px Inter, sans-serif';
-    ctx.textAlign = 'center';
     ctx.textBaseline = 'top';
     const step = 1.5707963267948966;
     const p = 3.141592653589793;
@@ -39,9 +38,9 @@ const zeroLinePlugin = {
       const max = xScale.max as number;
       let v = (min / step) | 0;
       v = v * step < min ? (v + 1) * step : v * step;
-      for (; v <= max; v += step) {
+      for (; v <= max + 0.001; v += step) {
         const px = xScale.getPixelForValue(v);
-        if (px < chartArea.left || px > chartArea.right) continue;
+        if (px < chartArea.left - 1 || px > chartArea.right + 1) continue;
         let label = '';
         if (near(v, -2*p, 0.01)) label = '−2π';
         else if (near(v, -p, 0.01)) label = '−π';
@@ -53,6 +52,9 @@ const zeroLinePlugin = {
         else if (near(v, p/2, 0.01)) label = 'π/2';
         else if (near(v, 3*p/2, 0.01)) label = '3π/2';
         else continue;
+        if (px < chartArea.left + 20) ctx.textAlign = 'left';
+        else if (px > chartArea.right - 20) ctx.textAlign = 'right';
+        else ctx.textAlign = 'center';
         ctx.fillText(label, px, y0 + 4);
       }
     }
